@@ -3,11 +3,27 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional
 from konlpy.tag import Okt
 from collections import Counter
+from keybert import KeyBERT
+from kiwipiepy import Kiwi
+from transformers import BertModel
+from textrankr import TextRank
 
 app = FastAPI()
 
-# 형태소 분석기 초기화
+class OktTokenizer:
+    okt: Okt = Okt()
+    def __call__(self, text:str) -> List[str]:
+        tokens: List[str] = self.okt.phrases(text)
+        return tokens
+tokenizer: OktTokenizer = OktTokenizer()
+textrank: TextRank = TextRank(tokenizer)
+
+# 형태소 분석기와 키워드 모델 초기화
 okt = Okt()
+kiwi = Kiwi()
+bert_model = BertModel.from_pretrained('skt/kobert-base-v1')
+kw_model = KeyBERT(bert_model)
+## textrank ·= TextRank(///)
 
 # 요청 데이터의 스키마 정의
 class WelfareInfo(BaseModel):
@@ -27,23 +43,16 @@ class WelfareInfo(BaseModel):
     responsibleInstitutionName: Optional[str]
     supportCondition: Optional[List[str]]
 
+class SummarizeInfo(BaseModel):
+    content: str
+    serviceId: str
+
 # 키워드 추출 함수
 def extract_keywords(text: str, num_keywords: int = 20) -> List[str]:
     nouns = okt.nouns(text)
     count = Counter(nouns)
     keywords = [word for word, _ in count.most_common(num_keywords)]
     return keywords
-
-# 요약 생성 함수
-def summarize_welfare_data(welfare_data: WelfareInfo) -> str:
-    summary_parts = [
-        f"서비스명: {welfare_data.serviceName}",
-        f"목적: {welfare_data.servicePurpose or '정보 없음'}",
-        f"대상: {welfare_data.targetGroup or '정보 없음'}",
-        f"지원 내용: {welfare_data.supportDetails or '정보 없음'}",
-        f"신청 마감일: {welfare_data.applicationDeadline or '정보 없음'}"
-    ]
-    return "\n".join(summary_parts)
 
 # 키워드 추출 엔드포인트
 @app.post("/extract_keywords/", response_model=List[str])
@@ -60,18 +69,18 @@ async def extract_keywords_from_welfare(data: WelfareInfo):
         ])
         
         # 키워드 추출
-        keywords = extract_keywords(text_to_analyze)
-        return keywords
+        keywords = kw_model.extract_keywords(text_to_analyze, keyphrase_ngram_range=(1, 1), stop_words=None, top_n=20)
+        keyword_list = ' '.join([word for word, _ in keywords])
+        return keyword_list.split()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 # 요약 생성 엔드포인트
 @app.post("/summarize_welfare/", response_model=str)
-async def summarize_welfare(data: WelfareInfo):
+async def summarize_welfare(data: SummarizeInfo):
     try:
-        # 요약 생성
-        summary = summarize_welfare_data(data)
-        return summary
+        summaries = textrank.summarize(data.content, 3, verbose=False)
+        return "\n".join(summaries)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
