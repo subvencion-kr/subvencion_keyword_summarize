@@ -1,16 +1,19 @@
-FROM python:3.12-slim
+FROM --platform=linux/amd64 python:3.12-slim
 
 WORKDIR /app
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
+    default-jdk \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
-RUN python3 -m venv venv
-RUN . venv/bin/activate
-RUN pip3 install -r requirements.txt
+# Create and activate virtual environment
+RUN python3 -m venv venv && \
+    . venv/bin/activate && \
+    pip install --upgrade pip setuptools wheel && \
+    pip install -r requirements.txt
 
 COPY . .
 
