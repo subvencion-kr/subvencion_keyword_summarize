@@ -92,4 +92,4 @@ def read_root():
 # 서버 실행을 위한 main 함수 (uvicorn으로 실행)
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=23500)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
