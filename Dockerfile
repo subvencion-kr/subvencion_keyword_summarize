@@ -1,27 +1,32 @@
-FROM --platform=linux/amd64 ubuntu:20.04
+FROM python:3.9-slim
 
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    openjdk-17-jdk \
+# 기본 패키지 및 Java 설치
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     g++ \
-    make \
-    python3-dev \
-    python3-pip \
+    default-jdk \
+    curl \
+    wget \
+    build-essential \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create and activate virtual environment
-RUN python3 -m venv /app/venv
+# KoNLPy 실행을 위한 환경변수 설정
+ENV JAVA_HOME=/usr/lib/jvm/default-java
+ENV PATH=$PATH:$JAVA_HOME/bin
 
-# Upgrade pip and install dependencies
-COPY requirements.txt /app/
-RUN /app/venv/bin/pip install --upgrade pip setuptools wheel && \
-    /app/venv/bin/pip install -r requirements.txt
+# 작업 디렉토리 설정
+WORKDIR /app
 
-# Copy application files
-COPY . /app
+# requirements.txt 복사 및 패키지 설치
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
+# 애플리케이션 코드 복사
+COPY . .
+
+# 포트 설정
 EXPOSE 8000
 
-CMD ["/app/venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# FastAPI 애플리케이션 실행
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
