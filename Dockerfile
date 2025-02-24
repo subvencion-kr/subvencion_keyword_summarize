@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 python:3.12-slim
+FROM --platform=linux/amd64 ubuntu:20.04
 
 WORKDIR /app
 
@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     g++ \
     make \
     python3-dev \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Create and activate virtual environment
