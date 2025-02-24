@@ -1,14 +1,14 @@
-FROM --platform=linux/amd64 python:3.12
+FROM --platform=linux/amd64 python:3.12-slim
 
 WORKDIR /app
 
 # Install system dependencies
-RUN apk add --no-cache \
-    openjdk17 \
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jdk \
     g++ \
     make \
     python3-dev \
-    musl-dev
+    && rm -rf /var/lib/apt/lists/*
 
 # Create and activate virtual environment
 RUN python3 -m venv /app/venv
