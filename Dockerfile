@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 # 기본 패키지 및 Java 설치
 RUN apt-get update && \
@@ -18,9 +18,12 @@ ENV PATH=$PATH:$JAVA_HOME/bin
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# requirements.txt 복사 및 패키지 설치
+# requirements.txt 복사
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# 가상환경 생성, 활성화 및 패키지 설치
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install -r requirements.txt
 
 # 애플리케이션 코드 복사
 COPY . .
@@ -28,5 +31,5 @@ COPY . .
 # 포트 설정
 EXPOSE 8000
 
-# FastAPI 애플리케이션 실행
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 가상환경 활성화 후 FastAPI 애플리케이션 실행
+CMD ["sh", "-c", "python3 main.py"]
